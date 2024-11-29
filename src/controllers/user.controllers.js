@@ -4,6 +4,7 @@ import { asyncHandler } from "../utils/asyncHandler.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse} from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose"
 
 // function to generate access and refresh token || jab bhi refresh and access token expire ho jayenge to isse new genareate ho jayenge call karne par
 const generateAccessAndRefreshToken = async(userId)=>{
@@ -358,6 +359,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
         throw new ApiError(400, "username is missing")
     }
 
+    // aggregation pipeline
     const channel = await User.aggregate([
         // first pipline
         {
@@ -427,6 +429,59 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
     )
 })
 
+// getuserWatchHistory
+const getWatchHistory = asyncHandler(async(req, res)=>{
+    const user = await User.aggregate([
+        // first pipeline
+        {
+            $match:{
+                _id:new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        // second pipeline
+        {
+            $lookup:{
+                from:"videos",
+                localField:"watchHistory",
+                foreignField:"_id",
+                as:"watchHistory",
+                pipeline:[
+                    {
+                        $lookup:{
+                            from:"users",
+                            localField:"owner",
+                            foreignField:"_id",
+                            as:"owner",
+                            pipeline:[
+                                {
+                                    $project:{
+                                        fullName:1,
+                                        username:1,
+                                        avatar:1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    // Array se data nikalne ke liye pipeline 
+                    {
+                       $addFields:{
+                        owner:{
+                            $first:"$owner"
+                        }
+                       }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, user[0].watchHistory, "Watch history fetched successfully")
+    )
+})
 
 export { 
     registerUser,
@@ -438,6 +493,7 @@ export {
     updateAccountDetails,
     updateCoverImage,
     updateUserAvatar,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getWatchHistory
 
  }
