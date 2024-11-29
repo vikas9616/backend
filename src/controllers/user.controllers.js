@@ -176,9 +176,12 @@ const loginUser = asyncHandler(async(req,res)=>{
 const logoutUser = asyncHandler(async(req, res)=>{
     await User.findByIdAndUpdate(
         req.user._id,
-        {
-            $set:{
-                refreshToken:undefined
+        {   //if this methode does not works then use another best method
+            // $set:{
+            //     refreshToken:undefined
+            // }
+            $unset:{
+                refershtoken:1 //this removes the field from document
             }
         },
         {
@@ -305,7 +308,7 @@ const updateUserAvatar = asyncHandler(async(req, res)=>{
     }
 
     const avatar = await uploadOnCloudinary(avatarLocalPath)
-
+    // console.log(avatar);
     if (!avatar) {
         throw new ApiError(400, "Error while uploading on avatar")
     }
@@ -332,7 +335,7 @@ const updateCoverImage = asyncHandler(async(req, res)=>{
     }
 
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
-
+     console.log(coverImage)
     if (!coverImage) {
         throw new ApiError(400, "Error while uploading on coverImage")
     }
